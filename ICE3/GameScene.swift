@@ -5,84 +5,106 @@
 //  Created by legion-11 on 27.02.2021.
 //
 
+import UIKit
+import AVFoundation
 import SpriteKit
 import GameplayKit
 
-class GameScene: SKScene {
+let screenSize = UIScreen.main.bounds
+var screenWidth: CGFloat?
+var screenHeight: CGFloat?
+
+class GameScene: SKScene
+{
     
-    private var label : SKLabelNode?
-    private var spinnyNode : SKShapeNode?
+    // instance variables
+    var ocean: Ocean?
+    var island: Island?
+    var plane: Plane?
+    var clouds: [Cloud] = []
     
-    override func didMove(to view: SKView) {
+    override func didMove(to view: SKView)
+    {
+        screenWidth = frame.width
+        screenHeight = frame.height
         
-        // Get label node from scene and store it for use later
-        self.label = self.childNode(withName: "//helloLabel") as? SKLabelNode
-        if let label = self.label {
-            label.alpha = 0.0
-            label.run(SKAction.fadeIn(withDuration: 2.0))
-        }
+        name = "GAME"
         
-        // Create shape node to use during mouse interaction
-        let w = (self.size.width + self.size.height) * 0.05
-        self.spinnyNode = SKShapeNode.init(rectOf: CGSize.init(width: w, height: w), cornerRadius: w * 0.3)
+        // add ocean to the scene
+        ocean = Ocean() // allocate memory
+        ocean?.position = CGPoint(x: 0, y: 745)
+        addChild(ocean!) // add object to the scene
         
-        if let spinnyNode = self.spinnyNode {
-            spinnyNode.lineWidth = 2.5
-            
-            spinnyNode.run(SKAction.repeatForever(SKAction.rotate(byAngle: CGFloat(Double.pi), duration: 1)))
-            spinnyNode.run(SKAction.sequence([SKAction.wait(forDuration: 0.5),
-                                              SKAction.fadeOut(withDuration: 0.5),
-                                              SKAction.removeFromParent()]))
+        // add island to the scene
+        island = Island()
+        addChild(island!)
+        
+        // add plane to the scene
+        plane = Plane()
+        plane?.position = CGPoint(x: 0, y: -545)
+        addChild(plane!)
+        
+        // add 3 clouds to the scene
+        for index in 0...2
+        {
+            let cloud: Cloud = Cloud()
+            clouds.append(cloud)
+            addChild(clouds[index])
         }
     }
     
     
-    func touchDown(atPoint pos : CGPoint) {
-        if let n = self.spinnyNode?.copy() as! SKShapeNode? {
-            n.position = pos
-            n.strokeColor = SKColor.green
-            self.addChild(n)
-        }
+    func touchDown(atPoint pos : CGPoint)
+    {
+        plane?.TouchMove(newPos: CGPoint(x: pos.x, y: -495))
     }
     
-    func touchMoved(toPoint pos : CGPoint) {
-        if let n = self.spinnyNode?.copy() as! SKShapeNode? {
-            n.position = pos
-            n.strokeColor = SKColor.blue
-            self.addChild(n)
-        }
+    func touchMoved(toPoint pos : CGPoint)
+    {
+        plane?.TouchMove(newPos: CGPoint(x: pos.x, y: -495))
+
     }
     
-    func touchUp(atPoint pos : CGPoint) {
-        if let n = self.spinnyNode?.copy() as! SKShapeNode? {
-            n.position = pos
-            n.strokeColor = SKColor.red
-            self.addChild(n)
-        }
+    func touchUp(atPoint pos : CGPoint)
+    {
+        plane?.TouchMove(newPos: CGPoint(x: pos.x, y: -495))
     }
     
-    override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
-        if let label = self.label {
-            label.run(SKAction.init(named: "Pulse")!, withKey: "fadeInOut")
-        }
-        
+    override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?)
+    {
         for t in touches { self.touchDown(atPoint: t.location(in: self)) }
     }
     
-    override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
+    override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?)
+    {
         for t in touches { self.touchMoved(toPoint: t.location(in: self)) }
     }
     
-    override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
+    override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?)
+    {
         for t in touches { self.touchUp(atPoint: t.location(in: self)) }
     }
     
-    override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent?) {
+    override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent?)
+    {
         for t in touches { self.touchUp(atPoint: t.location(in: self)) }
     }
     
-    
-    override func update(_ currentTime: TimeInterval) {
-        // Called before each frame is rendered
+    // this is where all the fun happens - this function is called about 60fps - every 16.666ms
+    override func update(_ currentTime: TimeInterval)
+    {
+        ocean?.Update()
+        island?.Update()
+        plane?.Update()
+        
+        CollisionManager.SquaredRadiusCheck(object1: plane!, object2: island!)
+        
+        for cloud in clouds
+        {
+            cloud.Update()
+            CollisionManager.SquaredRadiusCheck(object1: plane!, object2: cloud)
+        }
+        
+        
     }
 }
